@@ -2,12 +2,12 @@ package network
 
 import (
 	"fmt"
-	"math/rand"
 	"sort"
 	"testing"
 	"time"
 )
 
+//TestJoin tries to make a network, then check if nodes have sufficient peer list
 func TestJoin(t *testing.T) {
 	network := []*TcpJsonNode{}
 	var bootstrapPort int = 3e4
@@ -16,13 +16,12 @@ func TestJoin(t *testing.T) {
 	//This may be because of port insufficience.
 	//it should be okay with small size like 10
 	clusterSize := 10
-
+	//make the nodes
 	for i := 0; i < clusterSize; i++ {
 		port := fmt.Sprint(bootstrapPort + i)
 		node := NewTcpJsonNode(port)
 		network = append(network, node)
 	}
-	rand.Seed(time.Now().UnixNano())
 	for _, node := range network {
 		node.Join(bootstrapNode)
 	}
