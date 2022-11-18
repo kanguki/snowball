@@ -173,16 +173,20 @@ func (node *TcpJsonNode) processmsgs() {
 
 // sendmsg forms a valid raw message and sends to the receiver
 func (node *TcpJsonNode) sendmsg(receiver string, msgType msgType, msg ...msgPayload) {
+	toSend := []byte{byte(msgType)}
+	if msg != nil {
+		msgBytes, err := json.Marshal(&msg[0])
+		if err != nil {
+			return
+		}
+		toSend = append(toSend, msgBytes...)
+	}
 	conn, err := net.Dial("tcp", receiver)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	msgBytes, err := json.Marshal(&msg)
-	if err != nil {
-		return
-	}
-	conn.Write(append([]byte{byte(msgType)}, msgBytes...))
+	conn.Write(toSend)
 	conn.Close()
 }
 
