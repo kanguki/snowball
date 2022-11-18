@@ -136,31 +136,27 @@ func (node *TcpJsonNode) acceptMessages() {
 }
 
 func (node *TcpJsonNode) processmsgs() {
-	for {
-		select {
-		case msg := <-node.ProcessQueue:
-			// fmt.Printf("receive %d from %v\n", msg.Type, msg.Address)
-			switch msg.Type {
+	for msg := range node.ProcessQueue {
+		// fmt.Printf("receive %d from %v\n", msg.Type, msg.Address)
+		switch msg.Type {
 
-			case SELF_INTRODUCE:
-				node.addPeerToNode(msg.Address)
+		case SELF_INTRODUCE:
+			node.addPeerToNode(msg.Address)
 
-			case GET_PEER_LIST:
-				go node.sendmsg(msg.Address, PEERS_INTRODUCE, MsgPayload{AddressList: append(node.getPeers(), node.Address)})
+		case GET_PEER_LIST:
+			go node.sendmsg(msg.Address, PEERS_INTRODUCE, MsgPayload{AddressList: append(node.getPeers(), node.Address)})
 
-			case PEERS_INTRODUCE:
-				//add the sender to the list too
-				node.addPeerToNode(msg.Address)
-				if msg.AddressList == nil {
-					return
-				}
-				//for each peer in the list, save and send introduce msg to inform
-				//them about my existence
-				for _, addr := range msg.AddressList {
-					node.addPeerToNode(addr)
-					go node.sendmsg(addr, SELF_INTRODUCE, MsgPayload{})
-				}
-
+		case PEERS_INTRODUCE:
+			//add the sender to the list too
+			node.addPeerToNode(msg.Address)
+			if msg.AddressList == nil {
+				return
+			}
+			//for each peer in the list, save and send introduce msg to inform
+			//them about my existence
+			for _, addr := range msg.AddressList {
+				node.addPeerToNode(addr)
+				go node.sendmsg(addr, SELF_INTRODUCE, MsgPayload{})
 			}
 		}
 	}
