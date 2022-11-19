@@ -5,11 +5,13 @@ import (
 	"sort"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
-//TestJoin tries to make a network, then check if nodes have sufficient peer list
+// TestJoin tries to make a network, then check if nodes have sufficient peer list
 func TestJoin(t *testing.T) {
-	network := []*TcpJsonNode{}
+	network := []Node{}
 	var bootstrapPort int = 3e4
 	bootstrapNode := fmt.Sprintf("%s:%d", IP, bootstrapPort)
 	//if the size is too big, the number of misses will increase.
@@ -31,19 +33,19 @@ func TestJoin(t *testing.T) {
 		want := []string{}
 		for i := 0; i < clusterSize; i++ {
 			peer := fmt.Sprintf("%s:%d", IP, bootstrapPort+i)
-			if peer == node.Address {
+			if peer == node.MyAddress() {
 				continue
 			}
 			want = append(want, peer)
 		}
 		sort.Strings(want)
-		got := node.getPeers()
+		got := node.GetPeers()
 		sort.Strings(got)
 		if len(want) != len(got) {
-			fmt.Printf("%s missed %d!\n", node.Address, len(want)-len(got))
+			fmt.Printf("%s missed %d!\n", node.MyAddress(), len(want)-len(got))
 			misses++
 		}
-		// assert.Equal(t, want, got)
+		assert.Equal(t, want, got)
 	}
 	t.Logf("number of misses: %d\n", misses)
 }

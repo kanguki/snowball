@@ -8,4 +8,10 @@ type Node interface {
 	Join(bootstrapAddress string)
 	//SendMessage sends message to address
 	SendMessage(address string, message []byte) error
+	//RegisterMsghandler let user plug custom handlers for message
+	RegisterMsghandler(handler func(message []byte))
+	//GetPeers returns peers of the node
+	GetPeers() []string
+	//MyAddress returns address of myself
+	MyAddress() string
 }
