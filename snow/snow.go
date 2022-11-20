@@ -15,8 +15,8 @@ import (
 
 // for easy visualization, I'll use color string for choice, but it can be any interface
 type Choice struct {
-	Term  int
-	Color string
+	Term  int    `json:"term"`
+	Color string `json:"color"`
 }
 
 // Consensus is an implementation of Snowball consensus in a p2p network
