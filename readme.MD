@@ -2,9 +2,13 @@
 
 My implementation for avalanche or snowball consensus following **[this blog](https://docs.avax.network/overview/getting-started/avalanche-consensus)** (or **[this whitepaper](https://www.avalabs.org/whitepapers)**)
 
+# Demo
+
+[![1668951048951](image/readme/1668951048951.png)](https://www.youtube.com/watch?v=S0eylguxEcY)
+
 # UI
 
-UI for this repo is [snowball-ui](https://github.com/kanguki/snowball-ui), just open 
+UI for this repo is [snowball-ui](https://github.com/kanguki/snowball-ui), just open the index.html file on browser
 
 # How to run
 
