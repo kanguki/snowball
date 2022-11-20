@@ -21,9 +21,9 @@ type Choice struct {
 
 // Consensus is an implementation of Snowball consensus in a p2p network
 type Consensus struct {
-	plugin.Notification //notification that knows about state of Values
-	network.Node        //node that can communicate in a p2p network
-	SnowConfig          //Config to perform a snow consensus
+	noti         plugin.Notification //notification that knows about state of Values
+	network.Node                     //node that can communicate in a p2p network
+	SnowConfig                       //Config to perform a snow consensus
 
 	Values               map[int]string         //Values of Consensus for each round
 	valuesLock           *sync.Mutex            //protect Values
@@ -34,7 +34,7 @@ type Consensus struct {
 func NewConsensus(p2pNode network.Node, pluginNoti plugin.Notification,
 	config SnowConfig) *Consensus {
 	ret := &Consensus{
-		Notification:         pluginNoti,
+		noti:                 pluginNoti,
 		Node:                 p2pNode,
 		Values:               map[int]string{},
 		valuesLock:           &sync.Mutex{},
@@ -172,7 +172,7 @@ func (i *Consensus) switchValue(choice Choice) {
 		Data:    choice,
 	}
 	go func() {
-		err := i.Notification.NotifyChange(i.Node, msg)
+		err := i.noti.NotifyChange(i.Node, msg)
 		if err != nil {
 			log.Printf("NotifyChange error: %v\n", err)
 		}
@@ -187,7 +187,7 @@ func (i *Consensus) sampleK() map[string]bool {
 	for len(samples) < i.K {
 		index := rand.Intn(allPeersCount)
 		peer := allPeers[index]
-		if peer == i.Notification.ID() { //notification node doesnt need to join the voting quorum
+		if peer == i.noti.MyAddress() { //notification node doesnt need to join the voting quorum
 			continue
 		}
 		samples[peer] = true

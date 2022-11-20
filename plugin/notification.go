@@ -11,25 +11,20 @@ import (
 type Notification interface {
 	//NotifyChange works whenever the value is switched
 	NotifyChange(node network.Node, what interface{}) error
-	//ID returns address of the notification node
-	ID() string
+	//Node is the daemon node sitting receiving messages
+	network.Node
 }
 
 type P2pNotification struct {
-	//Address is the address to send noti to
-	Address string
+	network.Node
 }
 
 func NewP2pNotification(bootstrapAddress, port string, timeoutConn, maxRetries int) *P2pNotification {
 	node := network.NewTcpJsonNode(port, timeoutConn, maxRetries)
 	node.Join(bootstrapAddress)
 	return &P2pNotification{
-		Address: node.MyAddress(),
+		Node: node,
 	}
-}
-
-func (p *P2pNotification) ID() string {
-	return p.Address
 }
 
 func (p *P2pNotification) NotifyChange(node network.Node, what interface{}) error {
@@ -38,7 +33,7 @@ func (p *P2pNotification) NotifyChange(node network.Node, what interface{}) erro
 		log.Printf("NotifyChange error: %v\n", err)
 		return err
 	}
-	err = node.SendMessage(p.Address, msgBytes)
+	err = node.SendMessage(p.MyAddress(), msgBytes)
 	if err != nil {
 		log.Printf("sendDecision SendMessage error: %v\n", err)
 	}
