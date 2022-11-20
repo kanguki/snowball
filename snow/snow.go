@@ -54,6 +54,23 @@ type SnowConfig struct {
 	TimeoutQuerySampleK time.Duration
 }
 
+// Message is format of message amongst consensus nodes in the network
+type Message struct {
+	ID      string      `json:"id,omitempty"`
+	Type    MessageType `json:"type"`
+	Address string      `json:"address"` //address of the sender
+	Data    Choice      `json:"data"`
+}
+
+type MessageType int
+
+const (
+	GENERATE MessageType = iota + 1
+	QUERY
+	QUERY_RESULT
+	CHANGE
+)
+
 // OnQuery decides its value upon receiving QUERY messages from other peers
 // its logics follow the white paper
 func (i *Consensus) OnQuery(msg Message) {
@@ -144,22 +161,6 @@ func (i *Consensus) AcceptChoice(choice Choice) {
 		}
 	}
 }
-
-type Message struct {
-	ID      string      `json:"id"`
-	Type    MessageType `json:"type"`
-	Address string      `json:"address"` //address of the sender
-	Data    Choice      `json:"data"`
-}
-
-type MessageType int
-
-const (
-	GENERATE MessageType = iota + 1
-	QUERY
-	QUERY_RESULT
-	CHANGE
-)
 
 // switchValue switches value and sends notification
 func (i *Consensus) switchValue(choice Choice) {
