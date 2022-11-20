@@ -1,0 +1,31 @@
+version: "3"
+
+services:
+  bootstrapnode:
+    build: 
+      context: .
+      dockerfile: p2p_snow_node.Dockerfile
+    image: snowball-node
+    command: -bootstraphost=localhost:30000 -p2p_port=30000 -noti_addr=localhost:29999 -K=7 -A=4 -B=50 -timeout_loop=60 -timeout_query=5
+    network_mode: host
+  nodes:
+    build: 
+      context: .
+      dockerfile: p2p_snow_node.Dockerfile
+    deploy:
+      replicas: 200
+    image: snowball-node
+    command: -bootstraphost=localhost:30000 -noti_addr=localhost:29999 -K=7 -A=4 -B=50 -timeout_loop=60 -timeout_query=5
+    network_mode: host
+  operator:
+    build: 
+      context: .
+      dockerfile: operator.Dockerfile
+    image: snowball-operator
+    ports:
+      - "3000:3000"
+    command: -bootstraphost=localhost:30000 -p2p_port=29999 -ws_port=3000
+    network_mode: host
+# networks:
+#   host:
+#     external: true
