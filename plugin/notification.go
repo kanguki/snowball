@@ -7,6 +7,9 @@ import (
 	"github.com/kanguki/snowball/network"
 )
 
+// FIRST_BIT bit is used for fast filtering as there are other types of messages in the network too.
+const FIRST_BIT byte = '2'
+
 // Notification is used to notify
 type Notification interface {
 	//NotifyChange works whenever the value is switched
@@ -33,7 +36,8 @@ func (p *P2pNotification) NotifyChange(node network.Node, what interface{}) erro
 		log.Printf("NotifyChange error: %v\n", err)
 		return err
 	}
-	err = node.SendMessage(p.MyAddress(), msgBytes)
+	tosend := append([]byte{FIRST_BIT}, msgBytes...)
+	err = node.SendMessage(p.MyAddress(), tosend)
 	if err != nil {
 		log.Printf("sendDecision SendMessage error: %v\n", err)
 	}

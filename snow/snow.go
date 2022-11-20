@@ -54,6 +54,9 @@ type SnowConfig struct {
 	TimeoutQuerySampleK time.Duration
 }
 
+// FIRST_BIT bit is used for fast filtering as there are other types of messages in the network too.
+const FIRST_BIT byte = '1'
+
 // Message is format of message amongst consensus nodes in the network
 type Message struct {
 	ID      string      `json:"id,omitempty"`
@@ -100,7 +103,8 @@ func (i *Consensus) sendDecision(peerAddress string, id string, choice Choice) {
 		log.Printf("sendDecision error: %v\n", err)
 		return
 	}
-	err = i.SendMessage(peerAddress, msgBytes)
+	tosend := append([]byte{FIRST_BIT}, msgBytes...)
+	err = i.SendMessage(peerAddress, tosend)
 	if err != nil {
 		log.Printf("sendDecision SendMessage error: %v\n", err)
 	}
@@ -120,7 +124,7 @@ func (i *Consensus) AcceptChoice(choice Choice) {
 		//after timer M, no matter which choice the instance is holding, go with it
 		select {
 		case <-ctx.Done():
-			log.Printf("%v timeout loop query for term %v\n", i.MyAddress(), choice.Term)
+			log.Printf("%v timeout loop query for term %v with cnt=%d\n", i.MyAddress(), choice.Term, cnt)
 			return
 		default:
 		}
@@ -148,8 +152,6 @@ func (i *Consensus) AcceptChoice(choice Choice) {
 			} else {
 				cnt++
 			}
-			// fmt.Printf("%v: choiceCount: %v\n", i.MyAddress(), choiceCount)
-			// fmt.Printf("%v has cnt %v\n", i.MyAddress(), cnt)
 
 			if cnt >= i.B {
 				i.switchValue(Choice{Term: term, Color: lastChoice})
@@ -252,7 +254,8 @@ func (i *Consensus) query(peerAddress string, id string, choice Choice) {
 		log.Printf("Consensus Consensus query error: %v\n", err)
 		return
 	}
-	err = i.SendMessage(peerAddress, msgBytes)
+	tosend := append([]byte{FIRST_BIT}, msgBytes...)
+	err = i.SendMessage(peerAddress, tosend)
 	if err != nil {
 		log.Printf("query SendMessage error: %v\n", err)
 	}
@@ -260,8 +263,11 @@ func (i *Consensus) query(peerAddress string, id string, choice Choice) {
 
 // onMessage is the custom handler to plug into P2pNode
 func (i *Consensus) onMessage(msgBytes []byte) {
+	if msgBytes[0] != FIRST_BIT {
+		return
+	}
 	var msg Message
-	err := json.Unmarshal(msgBytes, &msg)
+	err := json.Unmarshal(msgBytes[1:], &msg)
 	if err != nil {
 		log.Println(err)
 		return
