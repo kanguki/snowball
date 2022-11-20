@@ -24,7 +24,8 @@ func TestAcceptChoice(t *testing.T) {
 	bootstrapNode := net.NewTcpJsonNode(fmt.Sprint(bootstrapPort), 5, 5)
 
 	//make the notification node
-	notiNode := plugin.NewP2pNotification(bootstrapNode.MyAddress(), fmt.Sprint(bootstrapPort-1), 5, 5)
+	notiServer := plugin.NewP2pNotificationServer(bootstrapNode.MyAddress(), fmt.Sprint(bootstrapPort-1), 5, 5)
+	notiClient := plugin.NewP2pNotificationClient(notiServer.MyAddress())
 
 	//make the instances
 	cluster := []*Consensus{}
@@ -33,7 +34,7 @@ func TestAcceptChoice(t *testing.T) {
 		network = append(network, node)
 		instance := NewConsensus(
 			node,
-			notiNode,
+			notiClient,
 			SnowConfig{
 				K:                   5,
 				A:                   3,

@@ -21,9 +21,9 @@ type Choice struct {
 
 // Consensus is an implementation of Snowball consensus in a p2p network
 type Consensus struct {
-	noti         plugin.Notification //notification that knows about state of Values
-	network.Node                     //node that can communicate in a p2p network
-	SnowConfig                       //Config to perform a snow consensus
+	noti         plugin.NotificationClient //notification that knows about state of Values
+	network.Node                           //node that can communicate in a p2p network
+	SnowConfig                             //Config to perform a snow consensus
 
 	Values               map[int]string         //Values of Consensus for each round
 	valuesLock           *sync.Mutex            //protect Values
@@ -31,7 +31,7 @@ type Consensus struct {
 	queryResultQueueLock *sync.Mutex            //protect queryResultQueue
 }
 
-func NewConsensus(p2pNode network.Node, pluginNoti plugin.Notification,
+func NewConsensus(p2pNode network.Node, pluginNoti plugin.NotificationClient,
 	config SnowConfig) *Consensus {
 	ret := &Consensus{
 		noti:                 pluginNoti,

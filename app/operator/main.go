@@ -40,7 +40,7 @@ func main() {
 		}
 	}()
 	//notification
-	notiNode := plugin.NewP2pNotification(*bootstrapAddress, fmt.Sprint(*p2pPort), 5, 10)
+	notiNode := plugin.NewP2pNotificationServer(*bootstrapAddress, fmt.Sprint(*p2pPort), 5, 10)
 	notiNode.RegisterMsghandler(func(msgBytes []byte) {
 		if msgBytes[0] != plugin.FIRST_BIT {
 			return
