@@ -27,7 +27,7 @@ func main() {
 
 	//set up notification and ws server
 	lock := &sync.Mutex{}
-	msgQueue := make(chan snow.Choice, 1)
+	msgQueue := make(chan snow.Message, 1)
 	wsClients := make(map[*websocket.Conn]bool, 1)
 	go func() {
 		for change := range msgQueue {
@@ -49,7 +49,7 @@ func main() {
 			log.Printf("error parsing notification message: %v\n", err)
 			return
 		}
-		msgQueue <- msg.Data
+		msgQueue <- msg
 	})
 
 	//websocket
