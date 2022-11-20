@@ -79,16 +79,18 @@ func (node *TcpJsonNode) Join(bootstrapAddress string) {
 		}
 		return node.sendPingMsg(bootstrapAddress, GET_PEER_LIST)
 	}
+	var err error
 	left := node.maxRetriesJoinNetwork
 	for left > 0 {
-		err := join()
+		err = join()
 		if err == nil {
-			break
+			return
 		}
 		left--
 		log.Printf("%d times left: %s failed to join network. Error: %v\n", left, node.MyAddress(), err)
 		time.Sleep(time.Second)
 	}
+	panic(fmt.Errorf("fail to join p2p network: %v", err))
 }
 
 // acceptMessages opens a tcp connection, listen for msgs and process
