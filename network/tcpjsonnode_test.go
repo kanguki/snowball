@@ -11,6 +11,7 @@ import (
 
 // TestJoin tries to make a network, then check if nodes have sufficient peer list
 func TestJoin(t *testing.T) {
+	const IP string = "localhost"
 	network := []Node{}
 	var bootstrapPort int = 3e4
 	bootstrapNode := fmt.Sprintf("%s:%d", IP, bootstrapPort)

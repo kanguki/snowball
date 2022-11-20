@@ -47,8 +47,6 @@ const (
 	PEERS_INTRODUCE
 )
 
-const IP string = "127.0.0.1" //for simplicity, use localhost as my ip
-
 // only bootstrap server needs to have port before hand, other nodes will randomly get a port
 func NewTcpJsonNode(port string, timeoutConn, maxRetries int) *TcpJsonNode {
 	node := &TcpJsonNode{
@@ -105,13 +103,13 @@ func (node *TcpJsonNode) acceptMessages() {
 	if err != nil {
 		panic(err)
 	}
-	_, port, err := net.SplitHostPort(listener.Addr().String())
+	host, port, err := net.SplitHostPort(listener.Addr().String())
 	if err != nil {
 		panic(err)
 	}
 	log.Printf("node starting on %s", port)
 	node.port = port
-	node.address = fmt.Sprintf("%s:%s", IP, port)
+	node.address = fmt.Sprintf("%s:%s", host, port)
 
 	// Listen for an incoming connection
 	go func() {
