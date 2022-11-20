@@ -20,6 +20,14 @@ type P2pNotification struct {
 	Address string
 }
 
+func NewP2pNotification(bootstrapAddress, port string, timeoutConn, maxRetries int) *P2pNotification {
+	node := network.NewTcpJsonNode(port, timeoutConn, maxRetries)
+	node.Join(bootstrapAddress)
+	return &P2pNotification{
+		Address: node.MyAddress(),
+	}
+}
+
 func (p *P2pNotification) ID() string {
 	return p.Address
 }

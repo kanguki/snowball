@@ -25,6 +25,8 @@ type TcpJsonNode struct {
 	lock *sync.Mutex
 	//timeout for a successful established connection, in second
 	timeoutConnection int
+	//maxRetriesJoinNetwork set limit for number of time trying to join the network
+	maxRetriesJoinNetwork int
 }
 
 type MsgPayload struct {
@@ -48,12 +50,13 @@ const (
 const IP string = "127.0.0.1" //for simplicity, use localhost as my ip
 
 // only bootstrap server needs to have port before hand, other nodes will randomly get a port
-func NewTcpJsonNode(port string, timeoutConn int) *TcpJsonNode {
+func NewTcpJsonNode(port string, timeoutConn, maxRetries int) *TcpJsonNode {
 	node := &TcpJsonNode{
-		port:              port,
-		peers:             map[string]bool{},
-		lock:              &sync.Mutex{},
-		timeoutConnection: timeoutConn,
+		port:                  port,
+		peers:                 map[string]bool{},
+		lock:                  &sync.Mutex{},
+		timeoutConnection:     timeoutConn,
+		maxRetriesJoinNetwork: maxRetries,
 	}
 	node.acceptMessages()
 	return node
@@ -69,8 +72,23 @@ func (node *TcpJsonNode) RegisterMsghandler(handler func(message []byte)) {
 
 // Join sends SELF_INTRODUCE and GET_PEERS to the bootstrapAddress
 func (node *TcpJsonNode) Join(bootstrapAddress string) {
-	node.sendPingMsg(bootstrapAddress, SELF_INTRODUCE, MsgPayload{Address: node.address})
-	node.sendPingMsg(bootstrapAddress, GET_PEER_LIST)
+	join := func() error {
+		err := node.sendPingMsg(bootstrapAddress, SELF_INTRODUCE, MsgPayload{Address: node.address})
+		if err != nil {
+			return err
+		}
+		return node.sendPingMsg(bootstrapAddress, GET_PEER_LIST)
+	}
+	left := node.maxRetriesJoinNetwork
+	for left > 0 {
+		err := join()
+		if err == nil {
+			break
+		}
+		left--
+		log.Printf("%d times left: %s failed to join network. Error: %v\n", left, node.MyAddress(), err)
+		time.Sleep(time.Second)
+	}
 }
 
 // acceptMessages opens a tcp connection, listen for msgs and process
@@ -172,7 +190,8 @@ func (node *TcpJsonNode) processmsg(msg MsgPayload) {
 }
 
 // sendPingMsg forms a valid raw message and sends to the receiver
-func (node *TcpJsonNode) sendPingMsg(receiver string, msgType MsgType, msg ...MsgPayload) {
+func (node *TcpJsonNode) sendPingMsg(receiver string, msgType MsgType,
+	msg ...MsgPayload) error {
 	message := MsgPayload{Type: msgType, Address: node.address}
 	if msg != nil {
 		message = msg[0]
@@ -182,10 +201,10 @@ func (node *TcpJsonNode) sendPingMsg(receiver string, msgType MsgType, msg ...Ms
 	msgBytes, err := json.Marshal(&message)
 	if err != nil {
 		log.Printf("sendPingMsg error: %v\n", err)
-		return
+		return err
 	}
 	tosend := append([]byte{'0'}, msgBytes...)
-	node.SendMessage(receiver, tosend)
+	return node.SendMessage(receiver, tosend)
 }
 
 func (node *TcpJsonNode) SendMessage(address string, message []byte) error {

@@ -47,11 +47,11 @@ func NewConsensus(p2pNode network.Node, pluginNoti plugin.Notification,
 }
 
 type SnowConfig struct {
-	K             int           //sample K of each round of query. K < number_of_peers
-	A             int           //number of threshold that can be considered a majority. A < K
-	B             int           //number of rounds of successive aggreement of sample K
-	M             time.Duration //timeout to decide the choice
-	Timeout1Query time.Duration
+	K                   int           //sample K of each round of query. K < number_of_peers
+	A                   int           //number of threshold that can be considered a majority. A < K
+	B                   int           //number of rounds of successive aggreement of sample K
+	M                   time.Duration //timeout to decide the choice
+	TimeoutQuerySampleK time.Duration
 }
 
 // OnQuery decides its value upon receiving QUERY messages from other peers
@@ -103,6 +103,7 @@ func (i *Consensus) AcceptChoice(choice Choice) {
 		//after timer M, no matter which choice the instance is holding, go with it
 		select {
 		case <-ctx.Done():
+			log.Printf("%v timeout loop query for term %v\n", i.MyAddress(), choice.Term)
 			return
 		default:
 		}
@@ -214,7 +215,7 @@ func (i *Consensus) querySampeK(choice Choice, samples map[string]bool) (
 
 	//handle query result
 	received := 0
-	ctx, cancel := context.WithTimeout(context.Background(), i.Timeout1Query)
+	ctx, cancel := context.WithTimeout(context.Background(), i.TimeoutQuerySampleK)
 	defer cancel()
 WAIT_AND_RECORD:
 	for {
@@ -226,7 +227,7 @@ WAIT_AND_RECORD:
 				break WAIT_AND_RECORD
 			}
 		case <-ctx.Done():
-			log.Printf("%v timeout loop query for term %v\n", i.MyAddress(), choice.Term)
+			// log.Printf("%v timeout query sample K for term %v\n", i.MyAddress(), choice.Term)
 			break WAIT_AND_RECORD
 		}
 	}

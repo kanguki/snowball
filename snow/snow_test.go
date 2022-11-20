@@ -12,42 +12,40 @@ import (
 
 func TestAcceptChoice(t *testing.T) {
 	//increase these params to stress the test :)
-	clusterSize := 50
-	terms := 5
+	clusterSize := 30
+	terms := 3
 	choices := []string{"black", "blue", "red", "pink", "gray", "white", "orange", "yellow", "purple"}
-	timeoutQuerySampleK := 10 //second, should be increased if clusterSize is too big
-	timeoutQueryEachPeer := 1 //second, should be increased if clusterSize is too big
+	timeoutLoopQuerySampleK := 10 //in second, the bigger the more exact, should be increased if clusterSize is too big
+	timeoutQuery1SampleK := 2     //in second, the bigger the more exact, should be increased if clusterSize is too big
 
 	var bootstrapPort int = 4e4
 	//make the network
 	network := []net.Node{}
+	bootstrapNode := net.NewTcpJsonNode(fmt.Sprint(bootstrapPort), 5, 5)
 
 	//make the notification node
-	notiNode := net.NewTcpJsonNode(fmt.Sprint(bootstrapPort-1), 5)
-	network = append(network, notiNode)
+	notiNode := plugin.NewP2pNotification(bootstrapNode.MyAddress(), fmt.Sprint(bootstrapPort-1), 5, 5)
 
 	//make the instances
-	bootstrapNode := fmt.Sprintf("localhost:%d", bootstrapPort)
 	cluster := []*Consensus{}
-	for i := 0; i < clusterSize; i++ {
-		port := fmt.Sprint(bootstrapPort + i)
-		node := net.NewTcpJsonNode(port, 5)
+	for i := 0; i < clusterSize-1; i++ {
+		node := net.NewTcpJsonNode("", 5, 5)
 		network = append(network, node)
 		instance := NewConsensus(
 			node,
-			&plugin.P2pNotification{Address: network[0].MyAddress()},
+			notiNode,
 			SnowConfig{
-				K:             5,
-				A:             3,
-				B:             50,
-				M:             time.Duration(time.Duration(timeoutQuerySampleK) * time.Second),
-				Timeout1Query: time.Duration(time.Duration(timeoutQueryEachPeer) * time.Second),
+				K:                   5,
+				A:                   3,
+				B:                   50,
+				M:                   time.Duration(time.Duration(timeoutLoopQuerySampleK) * time.Second),
+				TimeoutQuerySampleK: time.Duration(time.Duration(timeoutQuery1SampleK) * time.Second),
 			},
 		)
 		cluster = append(cluster, instance)
 	}
 	for _, node := range network {
-		node.Join(bootstrapNode)
+		node.Join(bootstrapNode.MyAddress())
 	}
 	time.Sleep(time.Second)
 
