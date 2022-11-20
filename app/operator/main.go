@@ -20,13 +20,10 @@ import (
 func main() {
 	//parsing flag
 	bootstrapAddress := flag.String("bootstraphost", "localhost:30000", "bootstrap address to join the p2p network")
-	_, _, err := net.SplitHostPort(*bootstrapAddress)
-	if err != nil {
-		log.Fatalf("bootstraphost is not a valid host. example: localhost:3000")
-	}
 	p2pPort := flag.Int("p2p_port", 29999, "p2p port this operator runs on")
 	wsPort := flag.Int("ws_port", 3000, "ws port this operator runs on")
 	flag.Parse()
+	assertCorrectNetworkHostPort(*bootstrapAddress)
 
 	//set up notification and ws server
 	lock := &sync.Mutex{}
@@ -79,6 +76,7 @@ func main() {
 		for {
 			_, _, err := ws.ReadMessage()
 			if err != nil {
+				// log.Printf("ws read message error: %v\n", err)
 				lock.Lock()
 				delete(wsClients, ws)
 				lock.Unlock()
@@ -88,4 +86,11 @@ func main() {
 	})
 	log.Printf("Serving ws on port %d\n", *wsPort)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *wsPort), nil))
+}
+
+func assertCorrectNetworkHostPort(addr string) {
+	_, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		log.Fatalf("%v is not a valid host. example: localhost:3000", addr)
+	}
 }
