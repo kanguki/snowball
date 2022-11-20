@@ -15,6 +15,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/kanguki/snowball/plugin"
 	"github.com/kanguki/snowball/snow"
+	"github.com/rs/cors"
 )
 
 func main() {
@@ -52,11 +53,71 @@ func main() {
 		msgQueue <- msg
 	})
 
+	//http calls
+	//get all peer list
+	mux := http.NewServeMux()
+	mux.HandleFunc("/nodes", func(w http.ResponseWriter, r *http.Request) {
+		peers := notiNode.GetPeers()
+		bytes, err := json.Marshal(&peers)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(bytes)
+	})
+	//set color for a certain term
+	mux.HandleFunc("/set", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("bad request. only accept POST"))
+			return
+		}
+		var message struct {
+			Term   int               `json:"term"`
+			Choice map[string]string `json:"choice"`
+		}
+		err := json.NewDecoder(r.Body).Decode(&message)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if message.Choice == nil {
+			w.WriteHeader(http.StatusNoContent)
+			w.Write([]byte("empty choice"))
+			return
+		}
+		for address, choice := range message.Choice {
+			if choice == "" {
+				continue
+			}
+			_, _, err := net.SplitHostPort(address)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			bytes, err := json.Marshal(&snow.Message{
+				Type: snow.GENERATE,
+				Data: snow.Choice{Term: message.Term, Color: choice},
+			})
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			go notiNode.SendMessage(address, append([]byte{snow.FIRST_BIT}, bytes...))
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("success"))
+	})
 	//websocket
-	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		upgrader := websocket.Upgrader{
 			ReadBufferSize:  1024,
 			WriteBufferSize: 2048,
+			CheckOrigin: func(r *http.Request) bool {
+				return true
+			},
 		}
 		ws, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
@@ -84,8 +145,10 @@ func main() {
 			}
 		}
 	})
+
+	handler := cors.AllowAll().Handler(mux)
 	log.Printf("Serving ws on port %d\n", *wsPort)
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *wsPort), nil))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *wsPort), handler))
 }
 
 func assertCorrectNetworkHostPort(addr string) {
