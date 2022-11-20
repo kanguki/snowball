@@ -21,7 +21,7 @@ func TestJoin(t *testing.T) {
 	//make the nodes
 	for i := 0; i < clusterSize; i++ {
 		port := fmt.Sprint(bootstrapPort + i)
-		node := NewTcpJsonNode(port)
+		node := NewTcpJsonNode(port, 5)
 		network = append(network, node)
 	}
 	for _, node := range network {

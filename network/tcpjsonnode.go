@@ -13,16 +13,18 @@ import (
 
 // TcpJsonNode is a kind of node in the network that communicates in plain text and json
 type TcpJsonNode struct {
-	//Port of the node
-	Port string
-	//Address of the node
-	Address string
-	//Peers holds a list of other peer addresses
-	Peers map[string]bool
+	//port of the node
+	port string
+	//address of the node
+	address string
+	//peers holds a list of other peer addresses
+	peers map[string]bool
 	//customHandler is used to plug in custom handler
 	customHandler func(message []byte)
 	//lock is used to save other pieces of data
 	lock *sync.Mutex
+	//timeout for a successful established connection, in second
+	timeoutConnection int
 }
 
 type MsgPayload struct {
@@ -46,18 +48,19 @@ const (
 const IP string = "127.0.0.1" //for simplicity, use localhost as my ip
 
 // only bootstrap server needs to have port before hand, other nodes will randomly get a port
-func NewTcpJsonNode(port string) *TcpJsonNode {
+func NewTcpJsonNode(port string, timeoutConn int) *TcpJsonNode {
 	node := &TcpJsonNode{
-		Port:  port,
-		Peers: map[string]bool{},
-		lock:  &sync.Mutex{},
+		port:              port,
+		peers:             map[string]bool{},
+		lock:              &sync.Mutex{},
+		timeoutConnection: timeoutConn,
 	}
 	node.acceptMessages()
 	return node
 }
 
 func (node *TcpJsonNode) MyAddress() string {
-	return node.Address
+	return node.address
 }
 
 func (node *TcpJsonNode) RegisterMsghandler(handler func(message []byte)) {
@@ -66,7 +69,7 @@ func (node *TcpJsonNode) RegisterMsghandler(handler func(message []byte)) {
 
 // Join sends SELF_INTRODUCE and GET_PEERS to the bootstrapAddress
 func (node *TcpJsonNode) Join(bootstrapAddress string) {
-	node.sendPingMsg(bootstrapAddress, SELF_INTRODUCE, MsgPayload{Address: node.Address})
+	node.sendPingMsg(bootstrapAddress, SELF_INTRODUCE, MsgPayload{Address: node.address})
 	node.sendPingMsg(bootstrapAddress, GET_PEER_LIST)
 }
 
@@ -75,8 +78,8 @@ func (node *TcpJsonNode) Join(bootstrapAddress string) {
 func (node *TcpJsonNode) acceptMessages() {
 	//Listen on a port, use random port if not specified
 	addr := "localhost:"
-	if node.Port != "" {
-		addr += node.Port
+	if node.port != "" {
+		addr += node.port
 	}
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -87,8 +90,8 @@ func (node *TcpJsonNode) acceptMessages() {
 		panic(err)
 	}
 	log.Printf("node starting on %s", port)
-	node.Port = port
-	node.Address = fmt.Sprintf("%s:%s", IP, port)
+	node.port = port
+	node.address = fmt.Sprintf("%s:%s", IP, port)
 
 	// Listen for an incoming connection
 	go func() {
@@ -104,7 +107,7 @@ func (node *TcpJsonNode) acceptMessages() {
 					conn.Close()
 				}()
 
-				timeoutDuration := 5 * time.Second
+				timeoutDuration := time.Duration(node.timeoutConnection) * time.Second
 				bufReader := bufio.NewReader(conn)
 
 				for {
@@ -151,7 +154,7 @@ func (node *TcpJsonNode) processmsg(msg MsgPayload) {
 		node.addPeerToNode(msg.Address)
 
 	case GET_PEER_LIST:
-		go node.sendPingMsg(msg.Address, PEERS_INTRODUCE, MsgPayload{AddressList: append(node.GetPeers(), node.Address)})
+		go node.sendPingMsg(msg.Address, PEERS_INTRODUCE, MsgPayload{AddressList: append(node.GetPeers(), node.address)})
 
 	case PEERS_INTRODUCE:
 		//add the sender to the list too
@@ -170,10 +173,10 @@ func (node *TcpJsonNode) processmsg(msg MsgPayload) {
 
 // sendPingMsg forms a valid raw message and sends to the receiver
 func (node *TcpJsonNode) sendPingMsg(receiver string, msgType MsgType, msg ...MsgPayload) {
-	message := MsgPayload{Type: msgType, Address: node.Address}
+	message := MsgPayload{Type: msgType, Address: node.address}
 	if msg != nil {
 		message = msg[0]
-		message.Address = node.Address
+		message.Address = node.address
 		message.Type = msgType
 	}
 	msgBytes, err := json.Marshal(&message)
@@ -198,11 +201,11 @@ func (node *TcpJsonNode) SendMessage(address string, message []byte) error {
 }
 
 func (node *TcpJsonNode) addPeerToNode(address string) {
-	if address == node.Address { //dont add myself
+	if address == node.address { //dont add myself
 		return
 	}
 	node.lock.Lock()
-	node.Peers[address] = true
+	node.peers[address] = true
 	node.lock.Unlock()
 }
 
@@ -210,7 +213,7 @@ func (node *TcpJsonNode) GetPeers() []string {
 	node.lock.Lock()
 	defer node.lock.Unlock()
 	peers := []string{}
-	for addr := range node.Peers {
+	for addr := range node.peers {
 		peers = append(peers, addr)
 	}
 	if len(peers) == 0 {

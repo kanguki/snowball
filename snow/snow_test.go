@@ -23,7 +23,7 @@ func TestAcceptChoice(t *testing.T) {
 	network := []net.Node{}
 
 	//make the notification node
-	notiNode := net.NewTcpJsonNode(fmt.Sprint(bootstrapPort - 1))
+	notiNode := net.NewTcpJsonNode(fmt.Sprint(bootstrapPort-1), 5)
 	network = append(network, notiNode)
 
 	//make the instances
@@ -31,7 +31,7 @@ func TestAcceptChoice(t *testing.T) {
 	cluster := []*Consensus{}
 	for i := 0; i < clusterSize; i++ {
 		port := fmt.Sprint(bootstrapPort + i)
-		node := net.NewTcpJsonNode(port)
+		node := net.NewTcpJsonNode(port, 5)
 		network = append(network, node)
 		instance := NewConsensus(
 			node,
