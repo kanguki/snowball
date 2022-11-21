@@ -7,16 +7,17 @@ import (
 	"io"
 	"log"
 	"net"
+	"strconv"
 	"sync"
 	"time"
 )
 
 // TcpJsonNode is a kind of node in the network that communicates in plain text and json
 type TcpJsonNode struct {
+	//host of the node
+	host string
 	//port of the node
-	port string
-	//address of the node
-	address string
+	port int
 	//peers holds a list of other peer addresses
 	peers map[string]bool
 	//customHandler is used to plug in custom handler
@@ -48,8 +49,9 @@ const (
 )
 
 // only bootstrap server needs to have port before hand, other nodes will randomly get a port
-func NewTcpJsonNode(port string, timeoutConn, maxRetries int) *TcpJsonNode {
+func NewTcpJsonNode(host string, port int, timeoutConn, maxRetries int) *TcpJsonNode {
 	node := &TcpJsonNode{
+		host:                  host,
 		port:                  port,
 		peers:                 map[string]bool{},
 		lock:                  &sync.Mutex{},
@@ -61,7 +63,7 @@ func NewTcpJsonNode(port string, timeoutConn, maxRetries int) *TcpJsonNode {
 }
 
 func (node *TcpJsonNode) MyAddress() string {
-	return node.address
+	return fmt.Sprintf("%s:%d", node.host, node.port)
 }
 
 func (node *TcpJsonNode) RegisterMsghandler(handler func(message []byte)) {
@@ -71,7 +73,7 @@ func (node *TcpJsonNode) RegisterMsghandler(handler func(message []byte)) {
 // Join sends SELF_INTRODUCE and GET_PEERS to the bootstrapAddress
 func (node *TcpJsonNode) Join(bootstrapAddress string) {
 	join := func() error {
-		err := node.sendPingMsg(bootstrapAddress, SELF_INTRODUCE, MsgPayload{Address: node.address})
+		err := node.sendPingMsg(bootstrapAddress, SELF_INTRODUCE, MsgPayload{Address: fmt.Sprintf("%s:%d", node.host, node.port)})
 		if err != nil {
 			return err
 		}
@@ -96,20 +98,29 @@ func (node *TcpJsonNode) Join(bootstrapAddress string) {
 func (node *TcpJsonNode) acceptMessages() {
 	//Listen on a port, use random port if not specified
 	addr := "localhost:"
-	if node.port != "" {
-		addr += node.port
+	if node.host != "" {
+		addr = node.host + ":"
+	}
+	if node.port != 0 {
+		addr += fmt.Sprint(node.port)
 	}
 	listener, err := net.Listen("tcp", addr)
-	if err != nil {
-		panic(err)
+	times := 100
+	for times > 0 && err != nil {
+		times--
+		if times == 0 {
+			panic(err)
+		}
+		listener, err = net.Listen("tcp", addr)
 	}
 	host, port, err := net.SplitHostPort(listener.Addr().String())
 	if err != nil {
 		panic(err)
 	}
 	log.Printf("node starting on %s", port)
-	node.port = port
-	node.address = fmt.Sprintf("%s:%s", host, port)
+	portNum, _ := strconv.ParseInt(port, 10, 32) //TODO: handle error
+	node.port = int(portNum)
+	node.host = host
 
 	// Listen for an incoming connection
 	go func() {
@@ -172,7 +183,7 @@ func (node *TcpJsonNode) processmsg(msg MsgPayload) {
 		node.addPeerToNode(msg.Address)
 
 	case GET_PEER_LIST:
-		go node.sendPingMsg(msg.Address, PEERS_INTRODUCE, MsgPayload{AddressList: append(node.GetPeers(), node.address)})
+		go node.sendPingMsg(msg.Address, PEERS_INTRODUCE, MsgPayload{AddressList: append(node.GetPeers(), fmt.Sprintf("%s:%d", node.host, node.port))})
 
 	case PEERS_INTRODUCE:
 		//add the sender to the list too
@@ -192,10 +203,10 @@ func (node *TcpJsonNode) processmsg(msg MsgPayload) {
 // sendPingMsg forms a valid raw message and sends to the receiver
 func (node *TcpJsonNode) sendPingMsg(receiver string, msgType MsgType,
 	msg ...MsgPayload) error {
-	message := MsgPayload{Type: msgType, Address: node.address}
+	message := MsgPayload{Type: msgType, Address: fmt.Sprintf("%s:%d", node.host, node.port)}
 	if msg != nil {
 		message = msg[0]
-		message.Address = node.address
+		message.Address = fmt.Sprintf("%s:%d", node.host, node.port)
 		message.Type = msgType
 	}
 	msgBytes, err := json.Marshal(&message)
@@ -210,7 +221,7 @@ func (node *TcpJsonNode) sendPingMsg(receiver string, msgType MsgType,
 func (node *TcpJsonNode) SendMessage(address string, message []byte) error {
 	conn, err := net.Dial("tcp", address)
 	if err != nil {
-		log.Printf("SendMessage error %v\n", err)
+		log.Printf("SendMessage %s error %v\n", message, err)
 		return err
 	}
 	conn.Write(message)
@@ -220,7 +231,7 @@ func (node *TcpJsonNode) SendMessage(address string, message []byte) error {
 }
 
 func (node *TcpJsonNode) addPeerToNode(address string) {
-	if address == node.address { //dont add myself
+	if address == fmt.Sprintf("%s:%d", node.host, node.port) { //dont add myself
 		return
 	}
 	node.lock.Lock()

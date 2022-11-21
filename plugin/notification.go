@@ -3,6 +3,8 @@ package plugin
 import (
 	"encoding/json"
 	"log"
+	"net"
+	"time"
 
 	"github.com/kanguki/snowball/network"
 )
@@ -14,8 +16,8 @@ type P2pNotificationServer struct {
 	network.Node
 }
 
-func NewP2pNotificationServer(bootstrapAddress, port string, timeoutConn, maxRetries int) *P2pNotificationServer {
-	node := network.NewTcpJsonNode(port, timeoutConn, maxRetries)
+func NewP2pNotificationServer(bootstrapAddress, host string, port int, timeoutConn, maxRetries int) *P2pNotificationServer {
+	node := network.NewTcpJsonNode(host, port, timeoutConn, maxRetries)
 	node.Join(bootstrapAddress)
 	return &P2pNotificationServer{
 		Node: node,
@@ -34,7 +36,20 @@ type P2pNotificationClient struct {
 }
 
 func NewP2pNotificationClient(serverAddress string) *P2pNotificationClient {
-	return &P2pNotificationClient{address: serverAddress}
+	times := 10
+	conn, err := net.Dial("tcp", serverAddress)
+	for times > 0 && err != nil {
+		times--
+		time.Sleep(time.Second)
+		if times == 0 {
+			log.Printf("timeout connecting to notification server. error: %v\n", err)
+			return &P2pNotificationClient{address: serverAddress}
+		}
+		// log.Printf("%d times left: error connecting to notification server: %v\nuse provided address %s then", times, err, serverAddress)
+		conn, err = net.Dial("tcp", serverAddress)
+	}
+	conn.Close()
+	return &P2pNotificationClient{address: conn.RemoteAddr().String()}
 }
 
 func (p *P2pNotificationClient) MyAddress() string {

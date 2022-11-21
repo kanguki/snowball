@@ -15,9 +15,10 @@ import (
 func main() {
 	rand.Seed(time.Now().UnixMilli())
 	//parsing flag
+	networkInterface := flag.String("nic", "localhost", "network interface that the node listens on")
 	bootstrapAddress := flag.String("bootstraphost", "localhost:30000", "bootstrap address to join the p2p network")
-	p2pPort := flag.String("p2p_port", "", "port for p2p node in the network")
-	notiAddress := flag.String("noti_addr", "127.0.0.1:29999", "address that the notification node is running on")
+	p2pPort := flag.Int("p2p_port", 0, "port for p2p node in the network")
+	notiAddress := flag.String("noti_addr", "localhost:29999", "address that the notification node is running on")
 	timeoutPerLoop := flag.Int("timeout_loop", 30, "timeout in second for each snow ball loop")
 	timeoutPerQuery := flag.Int("timeout_query", 2, "timeout in second for each sampkeK query round")
 	sampleK := flag.Int("K", 5, "number of nodes per sample")
@@ -29,7 +30,7 @@ func main() {
 	assertCorrectNetworkHostPort(*notiAddress)
 
 	notiClient := plugin.NewP2pNotificationClient(*notiAddress)
-	node := network.NewTcpJsonNode(*p2pPort, 5, 5)
+	node := network.NewTcpJsonNode(*networkInterface, *p2pPort, 5, 5)
 	config := snow.SnowConfig{
 		K:                   *sampleK,
 		A:                   *thresholdA,

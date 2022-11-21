@@ -1,7 +1,6 @@
 package snow
 
 import (
-	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -21,16 +20,16 @@ func TestAcceptChoice(t *testing.T) {
 	var bootstrapPort int = 4e4
 	//make the network
 	network := []net.Node{}
-	bootstrapNode := net.NewTcpJsonNode(fmt.Sprint(bootstrapPort), 5, 5)
+	bootstrapNode := net.NewTcpJsonNode("", bootstrapPort, 5, 5)
 
 	//make the notification node
-	notiServer := plugin.NewP2pNotificationServer(bootstrapNode.MyAddress(), fmt.Sprint(bootstrapPort-1), 5, 5)
+	notiServer := plugin.NewP2pNotificationServer(bootstrapNode.MyAddress(), "", bootstrapPort-1, 5, 5)
 	notiClient := plugin.NewP2pNotificationClient(notiServer.MyAddress())
 
 	//make the instances
 	cluster := []*Consensus{}
 	for i := 0; i < clusterSize-1; i++ {
-		node := net.NewTcpJsonNode("", 5, 5)
+		node := net.NewTcpJsonNode("", 0, 5, 5)
 		network = append(network, node)
 		instance := NewConsensus(
 			node,

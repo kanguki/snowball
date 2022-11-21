@@ -1,0 +1,36 @@
+version: "3"
+
+services:
+  bootstrapnode:
+    build: 
+      context: .
+      dockerfile: p2p_snow_node.Dockerfile
+    image: snowball-node
+    command: -nic=bootstrapnode  -bootstraphost=bootstrapnode:30000 -p2p_port=30000 -noti_addr=operator:29999 -K=5 -A=3 -B=30 -timeout_loop=60 -timeout_query=5
+    # network_mode: host
+    networks:
+      - snowball
+  nodes:
+    build: 
+      context: .
+      dockerfile: p2p_snow_node.Dockerfile
+    deploy:
+      replicas: 30
+    image: snowball-node
+    command: -nic=nodes  -bootstraphost=bootstrapnode:30000 -noti_addr=operator:29999 -K=5 -A=3 -B=30 -timeout_loop=60 -timeout_query=5
+    # network_mode: host
+    networks:
+      - snowball
+  operator:
+    build: 
+      context: .
+      dockerfile: operator.Dockerfile
+    image: snowball-operator
+    ports:
+      - "3000:3000"
+    command: -nic=operator -bootstraphost=bootstrapnode:30000 -p2p_port=29999 -ws_port=3000
+    # network_mode: host
+    networks:
+      - snowball
+networks:
+  snowball:

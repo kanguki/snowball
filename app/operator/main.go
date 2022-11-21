@@ -20,6 +20,7 @@ import (
 
 func main() {
 	//parsing flag
+	networkInterface := flag.String("nic", "localhost", "network interface that the node listens on")
 	bootstrapAddress := flag.String("bootstraphost", "localhost:30000", "bootstrap address to join the p2p network")
 	p2pPort := flag.Int("p2p_port", 29999, "p2p port this operator runs on")
 	wsPort := flag.Int("ws_port", 3000, "ws port this operator runs on")
@@ -38,7 +39,7 @@ func main() {
 		}
 	}()
 	//notification
-	notiNode := plugin.NewP2pNotificationServer(*bootstrapAddress, fmt.Sprint(*p2pPort), 5, 10)
+	notiNode := plugin.NewP2pNotificationServer(*bootstrapAddress, *networkInterface, *p2pPort, 5, 10)
 	notiNode.RegisterMsghandler(func(msgBytes []byte) {
 		if msgBytes[0] != plugin.FIRST_BIT {
 			return

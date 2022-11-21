@@ -11,7 +11,7 @@ import (
 
 // TestJoin tries to make a network, then check if nodes have sufficient peer list
 func TestJoin(t *testing.T) {
-	const IP string = "localhost"
+	const IP string = "127.0.0.1"
 	network := []Node{}
 	var bootstrapPort int = 3e4
 	bootstrapNode := fmt.Sprintf("%s:%d", IP, bootstrapPort)
@@ -21,8 +21,7 @@ func TestJoin(t *testing.T) {
 	clusterSize := 10
 	//make the nodes
 	for i := 0; i < clusterSize; i++ {
-		port := fmt.Sprint(bootstrapPort + i)
-		node := NewTcpJsonNode(port, 5, 5)
+		node := NewTcpJsonNode(IP, bootstrapPort+i, 5, 5)
 		network = append(network, node)
 	}
 	for _, node := range network {
