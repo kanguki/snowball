@@ -6,7 +6,7 @@ services:
       context: .
       dockerfile: p2p_snow_node.Dockerfile
     image: snowball-node
-    command: -bootstraphost=localhost:30000 -p2p_port=30000 -noti_addr=localhost:29999 -K=7 -A=4 -B=50 -timeout_loop=60 -timeout_query=5
+    command: -bootstraphost=localhost:30000 -p2p_port=30000 -noti_addr=127.0.0.1:29999 -K=7 -A=4 -B=30 -timeout_loop=60 -timeout_query=5
     network_mode: host
   nodes:
     build: 
@@ -15,7 +15,7 @@ services:
     deploy:
       replicas: 200
     image: snowball-node
-    command: -bootstraphost=localhost:30000 -noti_addr=localhost:29999 -K=7 -A=4 -B=50 -timeout_loop=60 -timeout_query=5
+    command: -bootstraphost=localhost:30000 -noti_addr=127.0.0.1:29999 -K=7 -A=4 -B=30 -timeout_loop=60 -timeout_query=5
     network_mode: host
   operator:
     build: 
