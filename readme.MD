@@ -4,7 +4,7 @@ My implementation for avalanche or snowball consensus following **[this blog](ht
 
 # Demo
 
-[![1668951048951](image/readme/1668951048951.png)](https://www.youtube.com/watch?v=S0eylguxEcY)
+[![1668951048951](image/readme/1668951048951.png)](https://youtu.be/3xokRzrW8IQ)
 
 # UI
 
